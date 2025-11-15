@@ -81,13 +81,15 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getToken();
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      // TypeScript ko satisfy karne ke liye cast
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
