@@ -36,8 +36,7 @@ export default function WalletPage() {
   const loadHistory = async () => {
     try {
       setHistoryLoading(true);
-      const data = await api.getAllWalletTransactions();
-      // newest first
+      const data = await api.getAllWalletTransactions(); // backend se jitna mile sab
       const sorted = [...data].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -54,9 +53,18 @@ export default function WalletPage() {
 
     setProcessingId(id);
     try {
-      await api.approveWalletRequest(id, adminNotes[id] || '');
-      await loadPendingRequests();
-      await loadHistory(); // ✅ history turant update
+      // ✅ server se updated transaction milega
+      const updated = await api.approveWalletRequest(id, adminNotes[id] || '');
+
+      // pending list se hatao
+      setPendingRequests((prev) => prev.filter((r) => r._id !== id));
+
+      // history me turant add / update karo
+      setHistory((prev) => {
+        const without = prev.filter((t) => t._id !== updated._id);
+        return [updated, ...without];
+      });
+
       setAdminNotes((prev) => ({ ...prev, [id]: '' }));
     } catch (error: any) {
       alert(error.message || 'Failed to approve request');
@@ -70,9 +78,15 @@ export default function WalletPage() {
 
     setProcessingId(id);
     try {
-      await api.rejectWalletRequest(id, adminNotes[id] || '');
-      await loadPendingRequests();
-      await loadHistory(); // ✅ history turant update
+      const updated = await api.rejectWalletRequest(id, adminNotes[id] || '');
+
+      setPendingRequests((prev) => prev.filter((r) => r._id !== id));
+
+      setHistory((prev) => {
+        const without = prev.filter((t) => t._id !== updated._id);
+        return [updated, ...without];
+      });
+
       setAdminNotes((prev) => ({ ...prev, [id]: '' }));
     } catch (error: any) {
       alert(error.message || 'Failed to reject request');
@@ -104,21 +118,41 @@ export default function WalletPage() {
       minute: '2-digit',
     });
 
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-  // 🔍 filter history client-side
-  const filteredHistory = history.filter((tx) => {
-    if (tx.status === 'pending') return false; // pending upar wale section mein hi dikhe
+  // 👉 History filter (client-side)
+  // 👉 History filter (client-side)
+const filteredHistory = history.filter((tx) => {
+  if (tx.status === 'pending') return false; // pending upar hi dikha rahe hain
 
-    if (historyFilter === 'all') return true;
-    if (historyFilter === 'coursePurchases') {
-      // course purchase: normally debit + completed
-      return tx.type === 'debit' && tx.status === 'completed';
-    }
-    return tx.status === historyFilter;
-  });
+  if (historyFilter === 'all') return true;
 
-  // 🧠 Ek line ka explanation text
+  // ✅ Approved tab:
+  // jo bhi CREDIT hai aur status approved/completed hai, wo approved list me aayega
+  if (historyFilter === 'approved') {
+    return tx.type === 'credit' && (tx.status === 'approved' || tx.status === 'completed');
+  }
+
+  // ✅ Course Purchases tab:
+  // debit + completed ko course purchase maan rahe hain
+  if (historyFilter === 'coursePurchases') {
+    return tx.type === 'debit' && tx.status === 'completed';
+  }
+
+  // ✅ Rejected / Completed tabs normal status pe
+  if (historyFilter === 'rejected') {
+    return tx.status === 'rejected';
+  }
+
+  if (historyFilter === 'completed') {
+    return tx.status === 'completed';
+  }
+
+  return true;
+});
+
+
+  // 👁 Professional explanation text
   const getTransactionExplanation = (tx: WalletTransaction) => {
     const who = getUserName(tx.userId);
     const base = `₹${tx.amount} ${tx.type === 'credit' ? 'credited to' : 'debited from'} ${who}'s wallet.`;
@@ -155,21 +189,13 @@ export default function WalletPage() {
     switch (tx.status) {
       case 'approved':
         return (
-          <span className={`${common} bg-emerald-100 text-emerald-800`}>
-            Approved
-          </span>
+          <span className={`${common} bg-emerald-100 text-emerald-800`}>Approved</span>
         );
       case 'rejected':
-        return (
-          <span className={`${common} bg-red-100 text-red-800`}>
-            Rejected
-          </span>
-        );
+        return <span className={`${common} bg-red-100 text-red-800`}>Rejected</span>;
       case 'completed':
         return (
-          <span className={`${common} bg-blue-100 text-blue-800`}>
-            Completed
-          </span>
+          <span className={`${common} bg-blue-100 text-blue-800`}>Completed</span>
         );
       default:
         return (
@@ -203,7 +229,7 @@ export default function WalletPage() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
         </div>
       </Layout>
     );
@@ -212,7 +238,7 @@ export default function WalletPage() {
   return (
     <Layout>
       <div className="space-y-10">
-        {/* Pending section (same style as pehle) */}
+        {/* PENDING SECTION */}
         <section className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Wallet Requests</h1>
@@ -320,14 +346,7 @@ export default function WalletPage() {
                         disabled={processingId === request._id}
                         className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
-                        {processingId === request._id ? (
-                          <>
-                            <span className="sr-only">Approving...</span>
-                            Processing…
-                          </>
-                        ) : (
-                          'Approve'
-                        )}
+                        {processingId === request._id ? 'Processing…' : 'Approve'}
                       </button>
                       <button
                         onClick={() => handleReject(request._id)}
@@ -344,7 +363,7 @@ export default function WalletPage() {
           )}
         </section>
 
-        {/* History section */}
+        {/* HISTORY SECTION */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -378,7 +397,7 @@ export default function WalletPage() {
 
           {historyLoading ? (
             <div className="bg-white rounded-xl border border-gray-200 p-8 flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-500 text-sm">
@@ -421,29 +440,94 @@ export default function WalletPage() {
                     </div>
                   </div>
 
-                  {tx.description && (
-                    <p className="mt-2 text-sm text-gray-700 line-clamp-2">
-                      {tx.description}
-                    </p>
+                  {expandedId === tx._id && (
+                    <div className="mt-4 border-t border-gray-100 pt-3 text-sm text-gray-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            Transaction ID
+                          </p>
+                          <p className="font-mono text-xs break-all">{tx._id}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            Amount
+                          </p>
+                          <p>
+                            ₹{tx.amount} ({tx.type === 'credit' ? 'Credit (Top-up)' : 'Debit'})
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            Status
+                          </p>
+                          <p>{capitalize(tx.status)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            Created At
+                          </p>
+                          <p>{formatDateTime(tx.createdAt)}</p>
+                        </div>
+                        {tx.processedAt && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 mb-1">
+                              Processed At
+                            </p>
+                            <p>{formatDateTime(tx.processedAt)}</p>
+                          </div>
+                        )}
+                        {tx.processedBy && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 mb-1">
+                              Processed By
+                            </p>
+                            <p>
+                              {typeof tx.processedBy === 'object'
+                                ? getUserName(tx.processedBy)
+                                : tx.processedBy}
+                            </p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            Payment Reference
+                          </p>
+                          <p>UTR: {tx.utrNumber}</p>
+                          <p>UPI: {tx.upiId}</p>
+                        </div>
+                      </div>
+
+                      {tx.description && (
+                        <p className="mb-2">
+                          <span className="font-semibold">Description: </span>
+                          {tx.description}
+                        </p>
+                      )}
+                      {tx.adminNotes && (
+                        <p className="mb-2">
+                          <span className="font-semibold">Admin Notes: </span>
+                          {tx.adminNotes}
+                        </p>
+                      )}
+
+                      <p className="mt-2 text-[13px] text-gray-700">
+                        {getTransactionExplanation(tx)}
+                      </p>
+                    </div>
                   )}
 
-                  <button
-                    type="button"
-                    className="mt-3 text-xs font-medium text-emerald-700 hover:text-emerald-800 underline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedId((prev) => (prev === tx._id ? null : tx._id));
-                    }}
-                  >
-                    {expandedId === tx._id
-                      ? 'Hide detailed explanation'
-                      : 'Explain this transaction'}
-                  </button>
-
-                  {expandedId === tx._id && (
-                    <p className="mt-3 text-sm text-gray-800 leading-relaxed border-t border-gray-100 pt-3">
-                      {getTransactionExplanation(tx)}
-                    </p>
+                  {expandedId !== tx._id && (
+                    <button
+                      type="button"
+                      className="mt-3 text-xs font-medium text-emerald-700 hover:text-emerald-800 underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedId(tx._id);
+                      }}
+                    >
+                      Explain this transaction
+                    </button>
                   )}
                 </div>
               ))}
