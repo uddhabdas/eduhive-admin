@@ -4,14 +4,11 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { api, Stats } from '@/lib/api';
 import Link from 'next/link';
+import { socket } from '@/lib/socket'; // ✅ socket import
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const loadStats = async () => {
     try {
@@ -23,6 +20,33 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // initial load
+    loadStats();
+
+    // ✅ wallet related events → stats refresh
+    const refresh = () => {
+      // optional: thoda smooth lagne ke liye loading true nahi kar raha
+      loadStats();
+    };
+
+    socket.on('new_wallet_request', refresh);
+    socket.on('wallet_request_approved', refresh);
+    socket.on('wallet_request_rejected', refresh);
+
+    // agar future me user/course ke liye bhi events banao to yaha add kar sakte ho
+    // socket.on('user_created', refresh);
+    // socket.on('course_created', refresh);
+
+    return () => {
+      socket.off('new_wallet_request', refresh);
+      socket.off('wallet_request_approved', refresh);
+      socket.off('wallet_request_rejected', refresh);
+      // socket.off('user_created', refresh);
+      // socket.off('course_created', refresh);
+    };
+  }, []);
 
   if (loading) {
     return (
