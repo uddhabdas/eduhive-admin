@@ -246,41 +246,30 @@ class ApiClient {
   // ------------------------------------
   // WALLET
   // ------------------------------------
-  getPendingWalletRequests() {
-    return this.request<WalletTransaction[]>(
-      "/api/wallet/admin/pending"
-    );
+    // Wallet
+  async getPendingWalletRequests(): Promise<WalletTransaction[]> {
+    return this.request<WalletTransaction[]>('/api/wallet/admin/pending');
   }
 
-  getAllWalletTransactions(status?: string, userId?: string) {
-    const params = new URLSearchParams();
-    if (status) params.append("status", status);
-    if (userId) params.append("userId", userId);
-
-    return this.request<WalletTransaction[]>(
-      `/api/wallet/admin/transactions?${params.toString()}`
-    );
+  // 👉 NEW VERSION: always returns ALL wallet transactions for admin
+  async getAllWalletTransactions(): Promise<WalletTransaction[]> {
+    return this.request<WalletTransaction[]>('/api/wallet/admin/transactions');
   }
 
-  approveWalletRequest(id: string, notes?: string) {
-    return this.request<WalletTransaction>(
-      `/api/wallet/admin/approve/${id}`,
-      {
-        method: "POST",
-        body: JSON.stringify({ adminNotes: notes }),
-      }
-    );
+  async approveWalletRequest(id: string, adminNotes?: string): Promise<WalletTransaction> {
+    return this.request<WalletTransaction>(`/api/wallet/admin/approve/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ adminNotes }),
+    });
   }
 
-  rejectWalletRequest(id: string, notes?: string) {
-    return this.request<WalletTransaction>(
-      `/api/wallet/admin/reject/${id}`,
-      {
-        method: "POST",
-        body: JSON.stringify({ adminNotes: notes }),
-      }
-    );
+  async rejectWalletRequest(id: string, adminNotes?: string): Promise<WalletTransaction> {
+    return this.request<WalletTransaction>(`/api/wallet/admin/reject/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ adminNotes }),
+    });
   }
+
 
   // ------------------------------------
   // STATS
