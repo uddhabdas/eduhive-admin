@@ -5,38 +5,50 @@ import Layout from '@/components/Layout';
 import { api, WalletTransaction } from '@/lib/api';
 import { socket } from '@/lib/socket';
 
-type HistoryFilter = 'all' | 'approved' | 'rejected' | 'completed';
+type HistoryFilter = 'all' | 'approved' | 'rejected' | 'completed' | 'purchases';
 
 export default function WalletPage() {
   const [pendingRequests, setPendingRequests] = useState<WalletTransaction[]>([]);
   const [history, setHistory] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);           // pending ke liye
+  const [loading, setLoading] = useState(true);            // pending ke liye
   const [loadingHistory, setLoadingHistory] = useState(true); // history ke liye
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<{ [key: string]: string }>({});
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
 
   useEffect(() => {
+    // initial load
     loadPendingRequests();
     loadHistory();
 
-    // 🔥 Real-time updates (pending list)
+    // 🔄 auto refresh har 10 second
+    const interval = setInterval(() => {
+      loadPendingRequests();
+      loadHistory();
+    }, 10000);
+
+    // 🔥 socket listeners (agar backend emit kar raha ho)
     socket.on('new_wallet_request', (data: any) => {
       const tx = data as WalletTransaction;
-      setPendingRequests((prev) => [tx, ...prev]);
+      setPendingRequests(prev => {
+        // duplicate avoid
+        if (prev.some(p => p._id === tx._id)) return prev;
+        return [tx, ...prev];
+      });
     });
 
     socket.on('wallet_request_approved', (id: string) => {
-      setPendingRequests((prev) => prev.filter((req) => req._id !== id));
+      setPendingRequests(prev => prev.filter(req => req._id !== id));
       loadHistory();
     });
 
     socket.on('wallet_request_rejected', (id: string) => {
-      setPendingRequests((prev) => prev.filter((req) => req._id !== id));
+      setPendingRequests(prev => prev.filter(req => req._id !== id));
       loadHistory();
     });
 
     return () => {
+      clearInterval(interval);
       socket.off('new_wallet_request');
       socket.off('wallet_request_approved');
       socket.off('wallet_request_rejected');
@@ -57,11 +69,16 @@ export default function WalletPage() {
   const loadHistory = async () => {
     try {
       const data = await api.getAllWalletTransactions();
-      const nonPending = data.filter((tx) => tx.status !== 'pending');
+
+      // sirf non-pending ko history me rakhna
+      const nonPending = data.filter(tx => tx.status !== 'pending');
+
+      // latest upar
       nonPending.sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+
       setHistory(nonPending);
     } catch (error) {
       console.error('Failed to load history:', error);
@@ -125,9 +142,42 @@ export default function WalletPage() {
     });
   };
 
-  const filteredHistory = history.filter((tx) => {
+  // label + chip color
+  const getStatusLabel = (tx: WalletTransaction) => {
+    // Course purchase = debit + completed
+    if (tx.type === 'debit' && tx.status === 'completed') {
+      return 'COURSE PURCHASE';
+    }
+    // normal wallet statuses
+    if (tx.status === 'approved') return 'APPROVED';
+    if (tx.status === 'rejected') return 'REJECTED';
+    if (tx.status === 'completed') return 'COMPLETED';
+    return tx.status.toUpperCase();
+  };
+
+  const getStatusClasses = (tx: WalletTransaction) => {
+    if (tx.type === 'debit' && tx.status === 'completed') {
+      return 'bg-purple-100 text-purple-800';
+    }
+    if (tx.status === 'approved') return 'bg-emerald-100 text-emerald-800';
+    if (tx.status === 'rejected') return 'bg-red-100 text-red-800';
+    if (tx.status === 'completed') return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  // history filter logic
+  const filteredHistory = history.filter(tx => {
     if (historyFilter === 'all') return true;
-    return tx.status === historyFilter;
+
+    if (historyFilter === 'approved') return tx.status === 'approved';
+    if (historyFilter === 'rejected') return tx.status === 'rejected';
+    if (historyFilter === 'completed') return tx.status === 'completed';
+
+    if (historyFilter === 'purchases') {
+      return tx.type === 'debit' && tx.status === 'completed';
+    }
+
+    return true;
   });
 
   if (loading) {
@@ -143,7 +193,7 @@ export default function WalletPage() {
   return (
     <Layout>
       <div className="space-y-8">
-        {/* ✅ PURANA HEADER STYLE */}
+        {/* 🔹 Tumhara original style header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Wallet Requests</h1>
           <p className="text-gray-600 mt-1">
@@ -151,7 +201,7 @@ export default function WalletPage() {
           </p>
         </div>
 
-        {/* ✅ PENDING REQUESTS – purana card style */}
+        {/* 🔹 Pending requests section (same style) */}
         {pendingRequests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <svg
@@ -167,16 +217,14 @@ export default function WalletPage() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-gray-500 text-lg font-medium">
-              No pending requests
-            </p>
+            <p className="text-gray-500 text-lg font-medium">No pending requests</p>
             <p className="text-gray-400 text-sm mt-2">
               All wallet requests have been processed
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {pendingRequests.map((request) => (
+            {pendingRequests.map(request => (
               <div
                 key={request._id}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition"
@@ -188,9 +236,7 @@ export default function WalletPage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
                           {getUserName(request.userId)}
                         </h3>
-                        <p className="text-sm text-gray-600">
-                          {getUserEmail(request.userId)}
-                        </p>
+                        <p className="text-sm text-gray-600">{getUserEmail(request.userId)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-emerald-600">
@@ -215,9 +261,7 @@ export default function WalletPage() {
                         <p className="text-xs font-medium text-gray-500 mb-1">
                           UPI ID
                         </p>
-                        <p className="text-sm text-gray-900">
-                          {request.upiId}
-                        </p>
+                        <p className="text-sm text-gray-900">{request.upiId}</p>
                       </div>
                     </div>
 
@@ -238,7 +282,7 @@ export default function WalletPage() {
                       </label>
                       <textarea
                         value={adminNotes[request._id] || ''}
-                        onChange={(e) =>
+                        onChange={e =>
                           setAdminNotes({
                             ...adminNotes,
                             [request._id]: e.target.value,
@@ -354,7 +398,7 @@ export default function WalletPage() {
           </div>
         )}
 
-        {/* 📜 TRANSACTION HISTORY SECTION */}
+        {/* 📜 Transaction history */}
         <div className="pt-8 border-t border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -362,27 +406,27 @@ export default function WalletPage() {
                 Transaction History
               </h2>
               <p className="text-gray-600 text-sm mt-1">
-                View previously approved, rejected and completed wallet requests
+                View approved, rejected, completed wallet top-ups and course purchases
               </p>
             </div>
-            <div className="flex gap-2">
-              {(['all', 'approved', 'rejected', 'completed'] as HistoryFilter[]).map(
-                (f) => (
-                  <button
-                    key={f}
-                    onClick={() => setHistoryFilter(f)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                      historyFilter === f
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {f === 'all'
-                      ? 'All'
-                      : f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                )
-              )}
+            <div className="flex flex-wrap gap-2">
+              {(['all', 'approved', 'rejected', 'completed', 'purchases'] as HistoryFilter[]).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setHistoryFilter(f)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                    historyFilter === f
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {f === 'all'
+                    ? 'All'
+                    : f === 'purchases'
+                    ? 'Course Purchases'
+                    : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -398,7 +442,7 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredHistory.map((tx) => (
+              {filteredHistory.map(tx => (
                 <div
                   key={tx._id}
                   className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
@@ -413,7 +457,8 @@ export default function WalletPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Created: {formatDateTime(tx.createdAt)}
-                        {tx.processedAt && ` • Processed: ${formatDateTime(tx.processedAt)}`}
+                        {tx.processedAt &&
+                          ` • Processed: ${formatDateTime(tx.processedAt)}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -421,17 +466,11 @@ export default function WalletPage() {
                         ₹{tx.amount}
                       </p>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          tx.status === 'approved'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : tx.status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : tx.status === 'completed'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClasses(
+                          tx
+                        )}`}
                       >
-                        {tx.status.toUpperCase()}
+                        {getStatusLabel(tx)}
                       </span>
                     </div>
                   </div>
