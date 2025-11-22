@@ -143,15 +143,21 @@ export default function WalletPage() {
   };
 
   // label + chip color
-  const getStatusLabel = (tx: WalletTransaction) => {
-    // Course purchase = debit + completed
+   const getStatusLabel = (tx: WalletTransaction) => {
+    // 🎓 Course purchase
     if (tx.type === 'debit' && tx.status === 'completed') {
       return 'COURSE PURCHASE';
     }
-    // normal wallet statuses
+
+    // 💰 Wallet top-up: credit + completed = actually approved hi hai
+    if (tx.type === 'credit' && tx.status === 'completed') {
+      return 'APPROVED';
+    }
+
     if (tx.status === 'approved') return 'APPROVED';
     if (tx.status === 'rejected') return 'REJECTED';
     if (tx.status === 'completed') return 'COMPLETED';
+
     return tx.status.toUpperCase();
   };
 
