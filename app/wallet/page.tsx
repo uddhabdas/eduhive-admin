@@ -3,11 +3,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { api, WalletTransaction } from '@/lib/api';
-import io from "socket.io-client";
-
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL ||
-  "https://eduhive-server.onrender.com";
+import { socket } from '@/lib/socket';  // ✅ FIXED CLIENT IMPORT
 
 export default function WalletPage() {
   const [pendingRequests, setPendingRequests] = useState<WalletTransaction[]>([]);
@@ -18,34 +14,23 @@ export default function WalletPage() {
   useEffect(() => {
     loadPendingRequests();
 
-    // --- SOCKET.IO CLIENT ---
-    const socket = io(SOCKET_URL, {
-      transports: ["websocket"],
-    });
-
-    socket.on("connect", () => {
-      console.log("Socket Connected:", socket.id);
-    });
-
-    // 🔥 When NEW request created by user → instantly update
+    // 🔥 Real-time listeners
     socket.on("new_wallet_request", (data: WalletTransaction) => {
-      console.log("New Wallet Request Received:", data);
-
       setPendingRequests(prev => [data, ...prev]);
     });
 
-    // 🔥 When request APPROVED → remove from pending
     socket.on("wallet_request_approved", (id: string) => {
       setPendingRequests(prev => prev.filter(req => req._id !== id));
     });
 
-    // 🔥 When request REJECTED → remove from pending
     socket.on("wallet_request_rejected", (id: string) => {
       setPendingRequests(prev => prev.filter(req => req._id !== id));
     });
 
     return () => {
-      socket.disconnect();
+      socket.off("new_wallet_request");
+      socket.off("wallet_request_approved");
+      socket.off("wallet_request_rejected");
     };
   }, []);
 
@@ -61,12 +46,12 @@ export default function WalletPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this wallet top-up request?')) return;
-
+    if (!confirm('Approve this wallet top-up request?')) return;
+    
     setProcessingId(id);
     try {
       await api.approveWalletRequest(id, adminNotes[id] || '');
-      setPendingRequests(prev => prev.filter(req => req._id !== id));
+      setAdminNotes({ ...adminNotes, [id]: '' });
     } catch (error: any) {
       alert(error.message || 'Failed to approve request');
     } finally {
@@ -75,12 +60,12 @@ export default function WalletPage() {
   };
 
   const handleReject = async (id: string) => {
-    if (!confirm('Are you sure you want to reject this wallet top-up request?')) return;
-
+    if (!confirm('Reject this wallet top-up request?')) return;
+    
     setProcessingId(id);
     try {
       await api.rejectWalletRequest(id, adminNotes[id] || '');
-      setPendingRequests(prev => prev.filter(req => req._id !== id));
+      setAdminNotes({ ...adminNotes, [id]: '' });
     } catch (error: any) {
       alert(error.message || 'Failed to reject request');
     } finally {
@@ -131,10 +116,7 @@ export default function WalletPage() {
         ) : (
           <div className="space-y-4">
             {pendingRequests.map((request) => (
-              <div
-                key={request._id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition"
-              >
+              <div key={request._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
@@ -183,9 +165,9 @@ export default function WalletPage() {
                       <textarea
                         value={adminNotes[request._id] || ''}
                         onChange={(e) => setAdminNotes({ ...adminNotes, [request._id]: e.target.value })}
-                        placeholder="Add notes about this transaction..."
                         rows={2}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
+                        placeholder="Add notes about this transaction..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
                       />
                     </div>
                   </div>
@@ -194,16 +176,17 @@ export default function WalletPage() {
                     <button
                       onClick={() => handleApprove(request._id)}
                       disabled={processingId === request._id}
-                      className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium disabled:opacity-50 flex items-center justify-center"
                     >
-                      Approve
+                      {processingId === request._id ? "Processing..." : "Approve"}
                     </button>
+
                     <button
                       onClick={() => handleReject(request._id)}
                       disabled={processingId === request._id}
-                      className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50 flex items-center justify-center"
                     >
-                      Reject
+                      {processingId === request._id ? "Processing..." : "Reject"}
                     </button>
                   </div>
                 </div>
