@@ -77,15 +77,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = this.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+    const headers: Record<string, string> = {
+  "Content-Type": "application/json",
+};
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+if (token) {
+  headers.Authorization = `Bearer ${token}`;
+}
+
 
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
