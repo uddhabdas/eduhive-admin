@@ -6,6 +6,18 @@ import Layout from '@/components/Layout';
 import { api, Lecture, Course } from '@/lib/api';
 import Link from 'next/link';
 
+type LectureFormState = {
+  title: string;
+  videoUrl: string;
+  orderIndex: number;
+  isLocked: boolean;
+  duration: number;
+  thumbnailUrl: string;
+  notes: string;
+  notesFileUrl: string;
+  videoId?: string; // optional, agar kahin purane code me use ho raha ho to error na aaye
+};
+
 export default function LecturesPage() {
   const router = useRouter();
   const params = useParams();
@@ -15,7 +27,7 @@ export default function LecturesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LectureFormState>({
     title: '',
     videoUrl: '',
     orderIndex: 1,
@@ -52,7 +64,14 @@ export default function LecturesPage() {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      const allowedTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
+      const allowedTypes = [
+        'video/mp4',
+        'video/mpeg',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/webm',
+        'video/x-matroska',
+      ];
       if (!allowedTypes.includes(file.type)) {
         alert('Invalid file type. Please select a video file (MP4, MOV, AVI, etc.)');
         return;
@@ -78,7 +97,7 @@ export default function LecturesPage() {
       });
 
       // Set the uploaded video URL
-      setFormData({ ...formData, videoUrl: result.videoUrl });
+      setFormData((prev) => ({ ...prev, videoUrl: result.videoUrl }));
       setSelectedFile(null);
       alert('Video uploaded successfully!');
     } catch (error: any) {
@@ -277,7 +296,9 @@ export default function LecturesPage() {
                   <input
                     type="number"
                     value={formData.orderIndex}
-                    onChange={(e) => setFormData({ ...formData, orderIndex: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, orderIndex: parseInt(e.target.value) || 0 })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -286,7 +307,9 @@ export default function LecturesPage() {
                   <input
                     type="number"
                     value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -295,7 +318,9 @@ export default function LecturesPage() {
                   <input
                     type="url"
                     value={formData.thumbnailUrl}
-                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, thumbnailUrl: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -311,11 +336,15 @@ export default function LecturesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes File URL (PDF/Document)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes File URL (PDF/Document)
+                </label>
                 <input
                   type="url"
                   value={formData.notesFileUrl}
-                  onChange={(e) => setFormData({ ...formData, notesFileUrl: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notesFileUrl: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   placeholder="https://example.com/notes.pdf"
                 />
@@ -325,7 +354,9 @@ export default function LecturesPage() {
                   type="checkbox"
                   id="isLocked"
                   checked={formData.isLocked}
-                  onChange={(e) => setFormData({ ...formData, isLocked: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isLocked: e.target.checked })
+                  }
                   className="w-4 h-4 text-emerald-600 border-gray-300 rounded"
                 />
                 <label htmlFor="isLocked" className="ml-2 text-sm font-medium text-gray-700">
@@ -359,20 +390,33 @@ export default function LecturesPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Order
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Title
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Duration
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {lectures.map((lecture) => (
                 <tr key={lecture._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{lecture.orderIndex}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {lecture.orderIndex}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{lecture.title}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {Math.floor(lecture.duration / 60)}:{(lecture.duration % 60).toString().padStart(2, '0')}
+                    {Math.floor(lecture.duration / 60)}:
+                    {(lecture.duration % 60).toString().padStart(2, '0')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {lecture.isLocked ? (
@@ -411,4 +455,3 @@ export default function LecturesPage() {
     </Layout>
   );
 }
-
