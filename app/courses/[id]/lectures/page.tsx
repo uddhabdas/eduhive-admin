@@ -169,7 +169,6 @@ export default function LecturesPage() {
               setSelectedFile(null);
               setFormData({
                 title: '',
-                videoId: '',
                 videoUrl: '',
                 orderIndex: lectures.length + 1,
                 isLocked: false,
