@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { api, Stats } from '@/lib/api';
 import Link from 'next/link';
-import { socket } from '@/lib/socket'; // ✅ socket import
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -22,33 +21,14 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // initial load
     loadStats();
 
-    // ✅ wallet related events → stats refresh
-    const refresh = () => {
-      // optional: thoda smooth lagne ke liye loading true nahi kar raha
-      loadStats();
-    };
-
-    socket.on('new_wallet_request', refresh);
-    socket.on('wallet_request_approved', refresh);
-    socket.on('wallet_request_rejected', refresh);
-
-    // agar future me user/course ke liye bhi events banao to yaha add kar sakte ho
-    // socket.on('user_created', refresh);
-    // socket.on('course_created', refresh);
-
-    return () => {
-      socket.off('new_wallet_request', refresh);
-      socket.off('wallet_request_approved', refresh);
-      socket.off('wallet_request_rejected', refresh);
-      // socket.off('user_created', refresh);
-      // socket.off('course_created', refresh);
-    };
+    // 🔁 every 10s stats refresh (wallet requests etc auto update)
+    const intervalId = setInterval(loadStats, 10000);
+    return () => clearInterval(intervalId);
   }, []);
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -61,10 +41,15 @@ export default function DashboardPage() {
   const statCards = [
     {
       title: 'Total Courses',
-      value: stats?.totalCourses || 0,
+      value: stats.totalCourses || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+          />
         </svg>
       ),
       color: 'bg-blue-500',
@@ -74,10 +59,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Active Courses',
-      value: stats?.activeCourses || 0,
+      value: stats.activeCourses || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       ),
       color: 'bg-green-500',
@@ -87,10 +77,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Lectures',
-      value: stats?.totalLectures || 0,
+      value: stats.totalLectures || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+          />
         </svg>
       ),
       color: 'bg-purple-500',
@@ -100,10 +95,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Users',
-      value: stats?.totalUsers || 0,
+      value: stats.totalUsers || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+          />
         </svg>
       ),
       color: 'bg-orange-500',
@@ -113,10 +113,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Teachers & Admins',
-      value: stats?.totalTeachers || 0,
+      value: stats.totalTeachers || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          />
         </svg>
       ),
       color: 'bg-emerald-500',
@@ -126,10 +131,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Pending Wallet Requests',
-      value: stats?.pendingWalletRequests || 0,
+      value: stats.pendingWalletRequests || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       ),
       color: 'bg-yellow-500',
@@ -156,11 +166,11 @@ export default function DashboardPage() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className={`${card.bgColor} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
-                  <div className={card.textColor}>
-                    {card.icon}
-                  </div>
+                  <div className={card.textColor}>{card.icon}</div>
                 </div>
-                <div className={`${card.color} w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity`} />
+                <div
+                  className={`${card.color} w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity`}
+                />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
@@ -187,7 +197,12 @@ export default function DashboardPage() {
               className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-sm hover:shadow-md text-center font-medium flex items-center justify-center"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
               </svg>
               Add New User
             </Link>
@@ -196,7 +211,12 @@ export default function DashboardPage() {
               className="px-6 py-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition shadow-sm hover:shadow-md text-center font-medium flex items-center justify-center"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
               Manage Courses
             </Link>
