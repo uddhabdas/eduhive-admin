@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EduHive Admin Panel",
-  description: "Admin panel for EduHive learning platform",
+  description: "Admin panel for managing EduHive learning platform - Courses, Lectures, Users, and Wallet Management",
+  keywords: ["EduHive", "Admin", "Learning Platform", "Course Management"],
 };
 
 export default function RootLayout({

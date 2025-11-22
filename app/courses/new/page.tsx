@@ -14,8 +14,6 @@ export default function NewCoursePage() {
     about: '',
     highlights: [] as string[],
     thumbnailUrl: '',
-    source: 'youtube',
-    sourcePlaylistId: '',
     isActive: true,
     price: 0,
     isPaid: false,
@@ -177,14 +175,14 @@ export default function NewCoursePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video URL (Course Intro Video)
+                Intro Video URL (optional)
               </label>
               <input
                 type="url"
                 value={formData.videoUrl}
                 onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-                placeholder="https://youtube.com/watch?v=..."
+                placeholder="https://your-bucket.s3.region.amazonaws.com/intro.mp4"
               />
             </div>
           </div>
@@ -202,34 +200,6 @@ export default function NewCoursePage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Source
-              </label>
-              <select
-                value={formData.source}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-              >
-                <option value="youtube">YouTube</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                YouTube Playlist ID
-              </label>
-              <input
-                type="text"
-                value={formData.sourcePlaylistId}
-                onChange={(e) => setFormData({ ...formData, sourcePlaylistId: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-                placeholder="PLyqSpQzTE6M-jkJEzbS5oHJUp2GWPsq6e"
-              />
-            </div>
-          </div>
 
           <div className="flex items-center space-x-6">
             <div className="flex items-center">

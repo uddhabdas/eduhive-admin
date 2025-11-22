@@ -1,72 +1,159 @@
 # EduHive Admin Panel
 
-Next.js admin panel for managing courses, lectures, users, and wallet transactions.
+Professional admin panel for managing the EduHive learning platform. Built with Next.js 16, React 19, and TypeScript.
 
 ## Features
 
-- ✅ Course Management
-- ✅ Lecture Management with AWS S3 Video Upload
-- ✅ User Management
-- ✅ Wallet Transaction Management
-- ✅ Dashboard with Statistics
+- 📊 **Dashboard** - View platform statistics and analytics
+- 📚 **Course Management** - Create, edit, and manage courses
+- 🎥 **Lecture Management** - Add lectures with video support (AWS S3 integration)
+- 👥 **User Management** - Manage users, roles, and permissions
+- 💰 **Wallet Management** - Handle wallet transactions and top-ups
+- 🔐 **Secure Authentication** - JWT-based authentication
 
-## Setup
+## Tech Stack
 
-### Local Development
+- **Framework:** Next.js 16
+- **UI Library:** React 19
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Deployment:** Vercel
+
+## Prerequisites
+
+- Node.js 20+ installed
+- Backend server running (see server configuration)
+- AWS S3 account (for video uploads - optional)
+
+## Getting Started
+
+### 1. Install Dependencies
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Create .env.local file
-echo NEXT_PUBLIC_API_URL=https://eduhive-server.onrender.com > .env.local
+### 2. Environment Setup
 
-# Run development server
+Create a `.env.local` file in the root directory:
+
+```env
+NEXT_PUBLIC_API_URL=https://your-server-url.com
+```
+
+For local development:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+### 3. Run Development Server
+
+```bash
 npm run dev
 ```
 
-Admin panel will be available at: http://localhost:3000
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Production Build
+### 4. Build for Production
 
 ```bash
 npm run build
 npm start
 ```
 
-## Environment Variables
+## AWS S3 Video Upload Setup
 
-Create `.env.local` file:
+To enable video uploads:
 
-```env
-NEXT_PUBLIC_API_URL=https://eduhive-server.onrender.com
-```
+1. **Create AWS S3 Bucket**
+   - Create a bucket in AWS S3
+   - Configure bucket permissions (public read access recommended)
+
+2. **Configure Server Environment Variables**
+   Add these to your backend server (Render, etc.):
+   ```
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_REGION=us-east-1
+   AWS_S3_BUCKET_NAME=your-bucket-name
+   ```
+
+3. **Upload Videos**
+   - Go to Courses → Select Course → Lectures
+   - Click "Add Lecture"
+   - Use "Upload Video to AWS S3" feature
+   - Or manually enter AWS S3 URL
 
 ## Deployment
 
-### Netlify
+### Vercel (Recommended)
 
-1. Connect GitHub repository
-2. Set base directory: `admin`
-3. Build command: `npm run build`
-4. Publish directory: `.next`
-5. Add environment variable: `NEXT_PUBLIC_API_URL`
+1. Connect your GitHub repository
+2. Set root directory: `/` (empty)
+3. Framework: Next.js (auto-detected)
+4. Add environment variable: `NEXT_PUBLIC_API_URL`
+5. Deploy
 
-See `NETLIFY_DEPLOYMENT_GUIDE.md` for detailed instructions.
+### Manual Deployment
 
-## Tech Stack
+```bash
+npm run build
+# Deploy the .next folder to your hosting provider
+```
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
+## Project Structure
 
-## API Endpoints
+```
+admin/
+├── app/                    # Next.js app router pages
+│   ├── dashboard/         # Dashboard page
+│   ├── courses/           # Course management
+│   ├── users/             # User management
+│   ├── wallet/            # Wallet management
+│   └── login/             # Login page
+├── components/            # Reusable components
+├── lib/                   # API client and utilities
+├── public/               # Static assets
+└── package.json          # Dependencies
+```
 
-All API calls go to: `NEXT_PUBLIC_API_URL`
+## API Integration
 
-- `/api/admin/courses` - Course management
-- `/api/admin/lectures` - Lecture management
-- `/api/admin/upload/video` - Video upload to S3
-- `/api/admin/users` - User management
-- `/api/admin/stats` - Dashboard statistics
+The admin panel connects to the EduHive backend API. All API calls are handled through `lib/api.ts`.
+
+### Required API Endpoints
+
+- `POST /api/auth/login` - Admin login
+- `GET /api/admin/stats` - Dashboard statistics
+- `GET /api/admin/courses` - List courses
+- `POST /api/admin/courses` - Create course
+- `GET /api/admin/courses/:id/lectures` - List lectures
+- `POST /api/admin/courses/:id/lectures` - Create lecture
+- `POST /api/admin/upload/video` - Upload video to S3
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | Yes |
+
+## Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## Security Notes
+
+- All admin routes are protected with JWT authentication
+- Tokens are stored in localStorage (consider httpOnly cookies for production)
+- Only users with `admin` or `teacher` role can access
+
+## Support
+
+For issues or questions, please refer to the main EduHive repository documentation.
+
+## License
+
+Part of the EduHive learning platform.

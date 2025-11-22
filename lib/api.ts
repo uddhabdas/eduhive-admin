@@ -18,8 +18,6 @@ export interface Course {
   highlights?: string[];
   thumbnailUrl: string;
   isActive: boolean;
-  source: string;
-  sourcePlaylistId: string;
   lectureCount: number;
   price?: number;
   isPaid?: boolean;
@@ -33,7 +31,6 @@ export interface Lecture {
   _id: string;
   courseId: string;
   title: string;
-  videoId: string;
   videoUrl?: string;
   orderIndex: number;
   isLocked: boolean;

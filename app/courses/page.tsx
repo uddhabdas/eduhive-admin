@@ -141,9 +141,6 @@ export default function CoursesPage() {
                     </svg>
                     <span className="font-medium">{course.lectureCount} lectures</span>
                   </div>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium capitalize">
-                    {course.source}
-                  </span>
                 </div>
                 <div className="flex space-x-2">
                   <Link

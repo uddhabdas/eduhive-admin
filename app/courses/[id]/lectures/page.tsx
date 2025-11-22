@@ -17,7 +17,6 @@ export default function LecturesPage() {
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
   const [formData, setFormData] = useState({
     title: '',
-    videoId: '',
     videoUrl: '',
     orderIndex: 1,
     isLocked: false,
@@ -103,7 +102,6 @@ export default function LecturesPage() {
       setSelectedFile(null);
       setFormData({
         title: '',
-        videoId: '',
         videoUrl: '',
         orderIndex: lectures.length + 1,
         isLocked: false,
@@ -122,7 +120,6 @@ export default function LecturesPage() {
     setEditingLecture(lecture);
     setFormData({
       title: lecture.title,
-      videoId: lecture.videoId,
       videoUrl: lecture.videoUrl || '',
       orderIndex: lecture.orderIndex,
       isLocked: lecture.isLocked,
@@ -205,22 +202,19 @@ export default function LecturesPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Video ID (YouTube)</label>
-                  <input
-                    type="text"
-                    value={formData.videoId}
-                    onChange={(e) => setFormData({ ...formData, videoId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                    placeholder="dQw4w9WgXcQ"
-                  />
-                </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Upload Video to AWS S3
                   </label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-blue-800 font-medium mb-1">⚠️ AWS S3 Setup Required</p>
+                    <p className="text-xs text-blue-700">
+                      Configure AWS S3 credentials in your server environment variables to enable video uploads.
+                      For now, you can manually enter the video URL below.
+                    </p>
+                  </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
@@ -257,16 +251,19 @@ export default function LecturesPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Video URL (Alternative)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Video URL <span className="text-gray-500">(Required)</span>
+                  </label>
                   <input
                     type="url"
                     value={formData.videoUrl}
                     onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                    placeholder="https://example.com/video.mp4 or AWS S3 URL"
+                    placeholder="https://your-bucket.s3.region.amazonaws.com/videos/video.mp4"
+                    required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Upload a video file above (stored in AWS S3) or paste a direct video URL
+                    Enter AWS S3 video URL or any direct video URL. Students will access videos via this URL.
                   </p>
                   {formData.videoUrl && (
                     <p className="text-xs text-emerald-600 mt-1">
@@ -365,7 +362,6 @@ export default function LecturesPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Video ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -376,7 +372,6 @@ export default function LecturesPage() {
                 <tr key={lecture._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{lecture.orderIndex}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{lecture.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lecture.videoId}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {Math.floor(lecture.duration / 60)}:{(lecture.duration % 60).toString().padStart(2, '0')}
                   </td>
