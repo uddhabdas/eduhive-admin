@@ -19,7 +19,7 @@ export default function WalletPage() {
     try {
       const [pending, allTx] = await Promise.all([
         api.getPendingWalletRequests(),
-        api.getAllWalletTransactions(), // 🔥 sab history ek hi baar
+        api.getAllWalletTransactions(),
       ]);
       setPendingRequests(pending);
       setHistory(allTx);
@@ -82,12 +82,26 @@ export default function WalletPage() {
     return 'Unknown';
   };
 
+  // 🔹 admin / processedBy display
+  const getActorName = (actor: any) => {
+    if (!actor) return '—';
+    if (typeof actor === 'object') {
+      return actor.name || actor.email || 'Unknown admin';
+    }
+    return actor; // id string
+  };
+
+  const getActorEmail = (actor: any) => {
+    if (!actor || typeof actor !== 'object') return '';
+    return actor.email || '';
+  };
+
   // 🔍 history filter logic
   const filteredHistory = history.filter((tx) => {
     if (activeFilter === 'all') return tx.status !== 'pending';
 
     if (activeFilter === 'approved') {
-      // tumhara rule: "jo credit aur completed hai woh approved"
+      // jo credit aur completed hai woh approved jaise treat kare
       return tx.type === 'credit' && tx.status === 'completed';
     }
 
@@ -96,7 +110,6 @@ export default function WalletPage() {
     if (activeFilter === 'completed') return tx.status === 'completed';
 
     if (activeFilter === 'course') {
-      // course purchases = mostly debit + completed
       if (tx.type === 'debit' && tx.status === 'completed') return true;
       const desc = (tx.description || '').toLowerCase();
       return desc.includes('course') || desc.includes('purchase');
@@ -356,7 +369,9 @@ export default function WalletPage() {
               </h3>
               <p className="text-sm text-gray-500 mb-4">
                 {selectedTx.type === 'credit'
-                  ? 'Wallet top-up credited to user.'
+                  ? selectedTx.status === 'rejected'
+                    ? 'Wallet top-up request was rejected by admin.'
+                    : 'Wallet top-up credited to user.'
                   : 'Amount deducted from wallet (e.g. course purchase).'}
               </p>
 
@@ -388,6 +403,18 @@ export default function WalletPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <p className="text-xs text-gray-500 mb-1">Transaction ID</p>
+                    <p className="font-mono text-gray-900 break-all text-xs">
+                      {selectedTx._id}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Status</p>
+                    <p className="text-gray-900 text-sm capitalize">
+                      {selectedTx.status}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-xs text-gray-500 mb-1">UTR Number</p>
                     <p className="font-mono text-gray-900 break-all text-xs">
                       {selectedTx.utrNumber || '—'}
@@ -412,6 +439,37 @@ export default function WalletPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* 🔥 Who approved / rejected */}
+                {selectedTx.status !== 'pending' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Action</p>
+                      <p className="text-gray-900 text-sm capitalize">
+                        {selectedTx.type === 'credit'
+                          ? selectedTx.status === 'completed'
+                            ? 'Top-up completed'
+                            : selectedTx.status === 'approved'
+                            ? 'Top-up approved'
+                            : selectedTx.status === 'rejected'
+                            ? 'Top-up rejected'
+                            : selectedTx.status
+                          : selectedTx.status}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Processed By</p>
+                      <p className="text-gray-900 text-sm">
+                        {getActorName(selectedTx.processedBy)}
+                      </p>
+                      {getActorEmail(selectedTx.processedBy) && (
+                        <p className="text-xs text-gray-500">
+                          {getActorEmail(selectedTx.processedBy)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {selectedTx.description && (
                   <div>
